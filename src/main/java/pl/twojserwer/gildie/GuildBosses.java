@@ -36,7 +36,18 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
             getCommand("boss").setExecutor(this);
         }
         getServer().getPluginManager().registerEvents(this, this);
-        getLogger().info("Plugin BossyGildii zostal wlaczony!");
+        
+        // Zadanie sprawdzające stan zdrowia dla Pierścienia Krwawej Furii co sekundę
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                ItemStack item = p.getInventory().getItemInMainHand();
+                if (isArtifact(item, "wampir") && p.getHealth() <= 10.0) {
+                    p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 30, 0, false, false, true));
+                }
+            }
+        }, 20L, 20L);
+
+        getLogger().info("Plugin BossyGildii v2.0 (HARD MODE) wlaczony!");
     }
 
     @Override
@@ -54,7 +65,7 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
         }
 
         spawnBoss(p.getLocation(), args[0].toLowerCase());
-        p.sendMessage("§aPrzywolano bossa: " + args[0]);
+        p.sendMessage("§6§l[!] §ePrzywolano wzmocnionego bossa: §f" + args[0]);
         return true;
     }
 
@@ -84,14 +95,30 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
                 break;
             default: return;
         }
+
         boss.setCustomName(name);
         boss.setCustomNameVisible(true);
         boss.setMetadata("boss_type", new FixedMetadataValue(this, type));
         
+        // --- HARD MODE: WZMOCNIENIE BOSSA ---
         if (boss.getAttribute(Attribute.GENERIC_MAX_HEALTH) != null) {
-            boss.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(500.0);
-            boss.setHealth(500.0);
+            boss.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(800.0);
+            boss.setHealth(800.0);
         }
+        if (boss.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE) != null) {
+            boss.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE).setBaseValue(15.0); // Bardzo silne ciosy
+        }
+        if (boss.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED) != null) {
+            boss.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(0.35); // Bardzo szybki
+        }
+        if (boss.getAttribute(Attribute.GENERIC_KNOCKBACK_RESISTANCE) != null) {
+            boss.getAttribute(Attribute.GENERIC_KNOCKBACK_RESISTANCE).setBaseValue(1.0); // Brak odrzutu
+        }
+
+        // Dodatkowe efekty wizualne i potężna siła
+        boss.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, 99999, 2));
+        boss.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 99999, 1));
+        loc.getWorld().strikeLightningEffect(loc);
     }
 
     @EventHandler
@@ -119,22 +146,29 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
 
         if (id == null) return;
 
-        if (id.equals("kataklizm") && e.getEntity() instanceof LivingEntity) {
-            e.setDamage(e.getDamage() * 1.4);
-            if (Math.random() < 0.02) {
+        // Ostrze Kataklizmu (+40% obrażeń PvP)
+        if (id.equals("kataklizm")) {
+            if (e.getEntity() instanceof Player) {
+                e.setDamage(e.getDamage() * 1.4);
+            }
+            if (Math.random() < 0.02) { // 2% szansy na Kataklizm
                 LivingEntity target = (LivingEntity) e.getEntity();
                 target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 100, 1));
                 target.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, target.getLocation(), 1);
+                target.getNearbyEntities(4, 4, 4).forEach(ent -> {
+                    if (ent instanceof LivingEntity && ent != p) ((LivingEntity) ent).damage(10.0);
+                });
             }
         }
 
+        // Berło Burzy (10% na piorun)
         if (id.equals("burza") && Math.random() < 0.10) {
             e.getEntity().getWorld().strikeLightning(e.getEntity().getLocation());
         }
 
+        // Pierscien Krwawej Furii (Dodatkowe obrażenia gdy < 5 serc)
         if (id.equals("wampir") && p.getHealth() <= 10.0) {
             e.setDamage(e.getDamage() * 1.4);
-            p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 40, 0));
         }
     }
 
@@ -148,22 +182,24 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
         if (id.equals("kataklizm")) {
             if (checkCooldown(p, "kat_active", 180)) {
                 p.getNearbyEntities(6, 6, 6).forEach(ent -> {
-                    Vector v = ent.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(2);
+                    Vector v = ent.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(2.5);
                     ent.setVelocity(v);
                 });
-                p.sendMessage("§4Kataklizm odpycha wrogow!");
+                p.sendMessage("§4§lKataklizm: §fFala energii odrzucila przeciwnikow!");
             }
         }
 
         if (id.equals("burza")) {
             if (checkCooldown(p, "burza_active", 120)) {
                 Location loc = p.getTargetBlock(null, 30).getLocation();
-                loc.getWorld().strikeLightning(loc);
-                loc.getWorld().strikeLightning(loc);
-                loc.getWorld().strikeLightning(loc);
+                for (int i = 0; i < 3; i++) loc.getWorld().strikeLightning(loc);
                 loc.getWorld().getNearbyEntities(loc, 4, 4, 4).forEach(ent -> {
-                    if (ent instanceof LivingEntity) ((LivingEntity) ent).addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 80, 1));
+                    if (ent instanceof LivingEntity) {
+                        ((LivingEntity) ent).addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 80, 1));
+                        ((LivingEntity) ent).damage(8.0);
+                    }
                 });
+                p.sendMessage("§b§lBurza: §fPrzywolano pioruny!");
             }
         }
     }
@@ -178,7 +214,7 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
             
             if (checkCooldown(p, "luk_aoe", 60)) {
                 Bukkit.getScheduler().runTaskLater(this, () -> {
-                    e.getProjectile().getWorld().createExplosion(e.getProjectile().getLocation(), 2.0f, false, false);
+                    e.getProjectile().getWorld().createExplosion(e.getProjectile().getLocation(), 3.0f, false, false);
                 }, 20L);
             }
         }
@@ -212,6 +248,12 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
         return item;
     }
 
+    private boolean isArtifact(ItemStack item, String id) {
+        if (item == null || !item.hasItemMeta()) return false;
+        String val = item.getItemMeta().getPersistentDataContainer().get(itemKey, PersistentDataType.STRING);
+        return id.equals(val);
+    }
+
     private String getArtifactId(ItemStack item) {
         if (item == null || !item.hasItemMeta()) return null;
         return item.getItemMeta().getPersistentDataContainer().get(itemKey, PersistentDataType.STRING);
@@ -222,7 +264,7 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
         long now = System.currentTimeMillis();
         long last = cooldowns.getOrDefault(fullKey, 0L);
         if (now - last < seconds * 1000L) {
-            p.sendMessage("§cUmiejetnosc bedzie dostepna za " + (seconds - (now - last) / 1000) + "s!");
+            p.sendMessage("§cMusisz poczekac " + (seconds - (now - last) / 1000) + "s!");
             return false;
         }
         cooldowns.put(fullKey, now);
