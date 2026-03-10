@@ -1,0 +1,8 @@
+name: GildieBossy
+version: 1.0
+main: pl.twojserwer.gildie.GuildBosses
+api-version: 1.20
+commands:
+  boss:
+    description: Komenda do przywoływania bossów.
+    permission: boss.admin
