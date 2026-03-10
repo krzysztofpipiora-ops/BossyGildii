@@ -181,11 +181,16 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
         return item;
     }
 
-    private ItemStack createRelic() {
+   private ItemStack createRelic() {
         ItemStack item = createArtifact(Material.GOLDEN_HELMET, "§1§lRelikt Władcy Otchłani", "otchlan", "§7Zwiększa siły witalne.");
         ItemMeta meta = item.getItemMeta();
-        meta.addAttributeModifier(Attribute.GENERIC_MAX_HEALTH, new AttributeModifier(UUID.randomUUID(), "relikthp", 4.0, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HEAD));
-        item.setItemMeta(meta);
+        if (meta != null) {
+            // Poprawka: Tworzymy UUID z losowego ciągu znaków lub stałego klucza
+            UUID attributeUuid = UUID.nameUUIDFromBytes("relikthp_key".getBytes());
+            AttributeModifier modifier = new AttributeModifier(attributeUuid, "relikthp", 4.0, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HEAD);
+            meta.addAttributeModifier(Attribute.GENERIC_MAX_HEALTH, modifier);
+            item.setItemMeta(meta);
+        }
         return item;
     }
 
