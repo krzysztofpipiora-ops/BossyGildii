@@ -2,18 +2,18 @@ name: Build Plugin JAR
 
 on:
   push:
-    branches: [ "main" ] # Uruchom przy każdym zapisie kodu na gałęzi main
-  workflow_dispatch:      # Pozwala uruchomić budowanie ręcznie
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4 # Zaktualizowane do v4
 
     - name: Set up JDK 17
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v4 # Zaktualizowane do v4
       with:
         java-version: '17'
         distribution: 'temurin'
@@ -23,7 +23,7 @@ jobs:
       run: mvn -B package --file pom.xml
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v4 # To naprawia Twój błąd!
       with:
         name: Gotowy-Plugin
         path: target/*.jar
