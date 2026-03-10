@@ -28,27 +28,33 @@ import java.util.*;
 public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor {
 
     private final NamespacedKey itemKey = new NamespacedKey(this, "unique_artifact");
-    private final Map<UUID, Long> cooldowns = new HashMap<>();
+    private final Map<String, Long> cooldowns = new HashMap<>();
 
     @Override
     public void onEnable() {
-        getCommand("boss").setExecutor(this);
+        if (getCommand("boss") != null) {
+            getCommand("boss").setExecutor(this);
+        }
         getServer().getPluginManager().registerEvents(this, this);
+        getLogger().info("Plugin BossyGildii zostal wlaczony!");
     }
 
-    // --- KOMENDA ADMINISTRATORA ---
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-        if (!(sender instanceof Player) || !sender.isOp()) return true;
+        if (!(sender instanceof Player)) return true;
         Player p = (Player) sender;
+        if (!p.isOp()) {
+            p.sendMessage("§cNie masz uprawnien!");
+            return true;
+        }
 
         if (args.length == 0) {
-            p.sendMessage("§cUżycie: /boss <kataklizm|burza|niszczyciel|wampir|otchlan>");
+            p.sendMessage("§cUzycie: /boss <kataklizm|burza|niszczyciel|wampir|otchlan>");
             return true;
         }
 
         spawnBoss(p.getLocation(), args[0].toLowerCase());
-        p.sendMessage("§aPrzywołano bossa: " + args[0]);
+        p.sendMessage("§aPrzywolano bossa: " + args[0]);
         return true;
     }
 
@@ -56,21 +62,38 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
         LivingEntity boss;
         String name;
         switch (type) {
-            case "kataklizm": boss = (WitherSkeleton) loc.getWorld().spawnEntity(loc, EntityType.WITHER_SKELETON); name = "§4§lBoss Kataklizmu"; break;
-            case "burza": boss = (Zombie) loc.getWorld().spawnEntity(loc, EntityType.ZOMBIE); name = "§b§lWładca Burz"; break;
-            case "niszczyciel": boss = (Skeleton) loc.getWorld().spawnEntity(loc, EntityType.SKELETON); name = "§6§lNiszczyciel Światów"; break;
-            case "wampir": boss = (Husk) loc.getWorld().spawnEntity(loc, EntityType.HUSK); name = "§c§lWładca Wampirów"; break;
-            case "otchlan": boss = (PiglinBrute) loc.getWorld().spawnEntity(loc, EntityType.PIGLIN_BRUTE); name = "§1§lWładca Otchłani"; break;
+            case "kataklizm": 
+                boss = (WitherSkeleton) loc.getWorld().spawnEntity(loc, EntityType.WITHER_SKELETON); 
+                name = "§4§lBoss Kataklizmu"; 
+                break;
+            case "burza": 
+                boss = (Zombie) loc.getWorld().spawnEntity(loc, EntityType.ZOMBIE); 
+                name = "§b§lWladca Burz"; 
+                break;
+            case "niszczyciel": 
+                boss = (Skeleton) loc.getWorld().spawnEntity(loc, EntityType.SKELETON); 
+                name = "§6§lNiszczyciel Swiatow"; 
+                break;
+            case "wampir": 
+                boss = (Husk) loc.getWorld().spawnEntity(loc, EntityType.HUSK); 
+                name = "§c§lWladca Wampirow"; 
+                break;
+            case "otchlan": 
+                boss = (PiglinBrute) loc.getWorld().spawnEntity(loc, EntityType.PIGLIN_BRUTE); 
+                name = "§1§lWladca Otchlani"; 
+                break;
             default: return;
         }
         boss.setCustomName(name);
         boss.setCustomNameVisible(true);
         boss.setMetadata("boss_type", new FixedMetadataValue(this, type));
-        boss.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(500.0);
-        boss.setHealth(500.0);
+        
+        if (boss.getAttribute(Attribute.GENERIC_MAX_HEALTH) != null) {
+            boss.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(500.0);
+            boss.setHealth(500.0);
+        }
     }
 
-    // --- LOGIKA DROPÓW (Jeden na serwer) ---
     @EventHandler
     public void onBossDeath(EntityDeathEvent e) {
         if (!e.getEntity().hasMetadata("boss_type")) return;
@@ -78,16 +101,15 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
         
         ItemStack artifact = null;
         switch (type) {
-            case "kataklizm": artifact = createArtifact(Material.NETHERITE_SWORD, "§4§lOstrze Kataklizmu", "kataklizm", "§7Legendarny miecz zagłady."); break;
-            case "burza": artifact = createArtifact(Material.BLAZE_ROD, "§b§lBerło Burzy", "burza", "§7Włada błyskawicami."); break;
-            case "niszczyciel": artifact = createArtifact(Material.BOW, "§6§lŁuk Niszczyciela", "niszczyciel", "§7Niszczy całe światy."); break;
-            case "wampir": artifact = createArtifact(Material.NETHERITE_SCRAP, "§c§lPierścień Krwawej Furii", "wampir", "§7Wyssij życie z wrogów."); break;
+            case "kataklizm": artifact = createArtifact(Material.NETHERITE_SWORD, "§4§lOstrze Kataklizmu", "kataklizm", "§7„Ostrze, ktore wedlug legend rozcinalo cale armie.”"); break;
+            case "burza": artifact = createArtifact(Material.BLAZE_ROD, "§b§lBerlo Burzy", "burza", "§7„Bron, ktora wedlug legend wladal sam wladca burz.”"); break;
+            case "niszczyciel": artifact = createArtifact(Material.BOW, "§6§lLuk Niszczyciela", "niszczyciel", "§7„Luk, ktorym wladal Niszczyciel Swiatow”"); break;
+            case "wampir": artifact = createArtifact(Material.NETHERITE_SCRAP, "§c§lPierscien Krwawej Furii", "wampir", "§7„Pierscien, ktory mial na palcu Wladca Wampirow”"); break;
             case "otchlan": artifact = createRelic(); break;
         }
         if (artifact != null) e.getDrops().add(artifact);
     }
 
-    // --- MECHANIKA PRZEDMIOTÓW ---
     @EventHandler
     public void onCombat(EntityDamageByEntityEvent e) {
         if (!(e.getDamager() instanceof Player)) return;
@@ -97,25 +119,19 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
 
         if (id == null) return;
 
-        // 1. Ostrze Kataklizmu (+40% dmg & Wither)
         if (id.equals("kataklizm") && e.getEntity() instanceof LivingEntity) {
             e.setDamage(e.getDamage() * 1.4);
             if (Math.random() < 0.02) {
                 LivingEntity target = (LivingEntity) e.getEntity();
                 target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 100, 1));
                 target.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, target.getLocation(), 1);
-                target.getNearbyEntities(4, 4, 4).forEach(ent -> {
-                    if (ent instanceof LivingEntity && ent != p) ((LivingEntity) ent).damage(5.0);
-                });
             }
         }
 
-        // 2. Berło Burzy (Pasywka 10% na piorun)
         if (id.equals("burza") && Math.random() < 0.10) {
             e.getEntity().getWorld().strikeLightning(e.getEntity().getLocation());
         }
 
-        // 3. Pierścień Krwawej Furii (Pasywka < 5 serc)
         if (id.equals("wampir") && p.getHealth() <= 10.0) {
             e.setDamage(e.getDamage() * 1.4);
             p.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 40, 0));
@@ -125,28 +141,26 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
     @EventHandler
     public void onInteract(PlayerInteractEvent e) {
         Player p = e.getPlayer();
-        ItemStack item = p.getItemInHand();
+        ItemStack item = e.getItem();
         String id = getArtifactId(item);
         if (id == null || !e.getAction().name().contains("RIGHT")) return;
 
-        long now = System.currentTimeMillis();
-
-        // 1. Aktywka: Ostrze Kataklizmu (Odpychanie)
         if (id.equals("kataklizm")) {
             if (checkCooldown(p, "kat_active", 180)) {
                 p.getNearbyEntities(6, 6, 6).forEach(ent -> {
                     Vector v = ent.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(2);
                     ent.setVelocity(v);
                 });
-                p.sendMessage("§4Fala energii odpycha wrogów!");
+                p.sendMessage("§4Kataklizm odpycha wrogow!");
             }
         }
 
-        // 2. Aktywka: Berło Burzy (3 Pioruny)
         if (id.equals("burza")) {
             if (checkCooldown(p, "burza_active", 120)) {
                 Location loc = p.getTargetBlock(null, 30).getLocation();
-                for (int i = 0; i < 3; i++) loc.getWorld().strikeLightning(loc);
+                loc.getWorld().strikeLightning(loc);
+                loc.getWorld().strikeLightning(loc);
+                loc.getWorld().strikeLightning(loc);
                 loc.getWorld().getNearbyEntities(loc, 4, 4, 4).forEach(ent -> {
                     if (ent instanceof LivingEntity) ((LivingEntity) ent).addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 80, 1));
                 });
@@ -170,24 +184,28 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
         }
     }
 
-    // --- METODY POMOCNICZE ---
     private ItemStack createArtifact(Material mat, String name, String id, String lore) {
         ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
-        meta.setDisplayName(name);
-        meta.setLore(Collections.singletonList(lore));
-        meta.getPersistentDataContainer().set(itemKey, PersistentDataType.STRING, id);
-        item.setItemMeta(meta);
+        if (meta != null) {
+            meta.setDisplayName(name);
+            meta.setLore(Collections.singletonList(lore));
+            meta.getPersistentDataContainer().set(itemKey, PersistentDataType.STRING, id);
+            item.setItemMeta(meta);
+        }
         return item;
     }
 
-   private ItemStack createRelic() {
-        ItemStack item = createArtifact(Material.GOLDEN_HELMET, "§1§lRelikt Władcy Otchłani", "otchlan", "§7Zwiększa siły witalne.");
+    private ItemStack createRelic() {
+        ItemStack item = new ItemStack(Material.GOLDEN_HELMET);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            // Poprawka: Tworzymy UUID z losowego ciągu znaków lub stałego klucza
-            UUID attributeUuid = UUID.nameUUIDFromBytes("relikthp_key".getBytes());
-            AttributeModifier modifier = new AttributeModifier(attributeUuid, "relikthp", 4.0, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HEAD);
+            meta.setDisplayName("§1§lRelikt Wladcy Otchlani");
+            meta.setLore(Collections.singletonList("§7„Posiadal go najwiekszy Wladca Krainy”"));
+            meta.getPersistentDataContainer().set(itemKey, PersistentDataType.STRING, "otchlan");
+            
+            UUID attrUuid = UUID.nameUUIDFromBytes("relic_hp_key".getBytes());
+            AttributeModifier modifier = new AttributeModifier(attrUuid, "relic_hp", 4.0, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HEAD);
             meta.addAttributeModifier(Attribute.GENERIC_MAX_HEALTH, modifier);
             item.setItemMeta(meta);
         }
@@ -200,13 +218,14 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
     }
 
     private boolean checkCooldown(Player p, String key, int seconds) {
-        String fullKey = p.getUniqueId() + key;
-        long time = cooldowns.getOrDefault(fullKey, 0L);
-        if (System.currentTimeMillis() - time < seconds * 1000L) {
-            p.sendMessage("§cMusisz poczekać " + (seconds - (System.currentTimeMillis() - time) / 1000) + "s!");
+        String fullKey = p.getUniqueId().toString() + key;
+        long now = System.currentTimeMillis();
+        long last = cooldowns.getOrDefault(fullKey, 0L);
+        if (now - last < seconds * 1000L) {
+            p.sendMessage("§cUmiejetnosc bedzie dostepna za " + (seconds - (now - last) / 1000) + "s!");
             return false;
         }
-        cooldowns.put(fullKey, System.currentTimeMillis());
+        cooldowns.put(fullKey, now);
         return true;
     }
 }
