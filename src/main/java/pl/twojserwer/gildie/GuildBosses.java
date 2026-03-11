@@ -1,4 +1,4 @@
-package pl.twojserwer.guilditems;
+package pl.twojserwer.gildie;
 
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
@@ -25,7 +25,7 @@ import org.bukkit.util.Vector;
 
 import java.util.*;
 
-public class GuildItemsPlugin extends JavaPlugin implements Listener, CommandExecutor {
+public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor {
 
     private final NamespacedKey itemKey = new NamespacedKey(this, "unique_artifact");
     private final Map<String, Long> cooldowns = new HashMap<>();
@@ -37,6 +37,7 @@ public class GuildItemsPlugin extends JavaPlugin implements Listener, CommandExe
         }
         getServer().getPluginManager().registerEvents(this, this);
         
+        // Zadanie sprawdzające Pierścień Krwawej Furii
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 ItemStack item = p.getInventory().getItemInMainHand();
@@ -46,7 +47,7 @@ public class GuildItemsPlugin extends JavaPlugin implements Listener, CommandExe
             }
         }, 20L, 20L);
 
-        getLogger().info("Plugin GuildItems (Zwiekszone Cooldowny) wlaczony!");
+        getLogger().info("Plugin GuildBosses v3.0 zostal poprawnie zaladowany!");
     }
 
     @Override
@@ -64,7 +65,7 @@ public class GuildItemsPlugin extends JavaPlugin implements Listener, CommandExe
         }
 
         spawnBoss(p.getLocation(), args[0].toLowerCase());
-        p.sendMessage("§6§l[!] §ePrzywolano bossa: §f" + args[0]);
+        p.sendMessage("§6§l[!] §ePrzywolano bossa (500HP): §f" + args[0]);
         return true;
     }
 
@@ -103,7 +104,7 @@ public class GuildItemsPlugin extends JavaPlugin implements Listener, CommandExe
             case "kataklizm": artifact = createArtifact(Material.NETHERITE_SWORD, "§4§lOstrze Kataklizmu", "kataklizm", "§c+5% PvP | Aktywacja: 5 min"); break;
             case "burza": artifact = createArtifact(Material.BLAZE_ROD, "§b§lBerlo Burzy", "burza", "§7Piorun: 4 min"); break;
             case "niszczyciel": artifact = createArtifact(Material.BOW, "§6§lLuk Niszczyciela", "niszczyciel", "§7Wybuch: 2 min"); break;
-            case "wampir": artifact = createArtifact(Material.NETHERITE_SCRAP, "§c§lPierscien Krwawej Furii", "wampir", "§7Pierscien Wladcy Wampirow."); break;
+            case "wampir": artifact = createArtifact(Material.NETHERITE_SCRAP, "§c§lPierscien Krwawej Furii", "wampir", "§7Zwieksza szybkosc gdy masz malo HP."); break;
             case "otchlan": artifact = createRelic(); break;
         }
         if (artifact != null) e.getDrops().add(artifact);
@@ -121,8 +122,7 @@ public class GuildItemsPlugin extends JavaPlugin implements Listener, CommandExe
         if (id.equals("kataklizm")) {
             if (e.getEntity() instanceof Player) e.setDamage(e.getDamage() * 1.05);
             if (Math.random() < 0.02 && e.getEntity() instanceof LivingEntity) {
-                LivingEntity target = (LivingEntity) e.getEntity();
-                target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 100, 1));
+                ((LivingEntity) e.getEntity()).addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 100, 1));
             }
         }
 
@@ -148,7 +148,7 @@ public class GuildItemsPlugin extends JavaPlugin implements Listener, CommandExe
                     Vector v = ent.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(1.8);
                     ent.setVelocity(v);
                 });
-                p.sendMessage("§4§lKataklizm: §fFala energii (Cooldown 5min)!");
+                p.sendMessage("§4§lKataklizm: §fOdepchnieto wrogow!");
             }
         }
 
@@ -156,7 +156,7 @@ public class GuildItemsPlugin extends JavaPlugin implements Listener, CommandExe
             if (checkCooldown(p, "burza_active", 240)) { // 4 minuty
                 Location loc = p.getTargetBlock(null, 30).getLocation();
                 loc.getWorld().strikeLightning(loc);
-                p.sendMessage("§b§lBurza: §fPrzywolano piorun (Cooldown 4min)!");
+                p.sendMessage("§b§lBurza: §fPiorun uderzyl w cel!");
             }
         }
     }
@@ -218,7 +218,7 @@ public class GuildItemsPlugin extends JavaPlugin implements Listener, CommandExe
         long now = System.currentTimeMillis();
         long last = cooldowns.getOrDefault(fullKey, 0L);
         if (now - last < seconds * 1000L) {
-            p.sendMessage("§cMusisz odczekac jeszcze " + (seconds - (now - last) / 1000) + "s!");
+            p.sendMessage("§cUmiejetnosc dostepna za: " + (seconds - (now - last) / 1000) + "s");
             return false;
         }
         cooldowns.put(fullKey, now);
