@@ -37,7 +37,7 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
         }
         getServer().getPluginManager().registerEvents(this, this);
         
-        // Pętla sprawdzająca Pierścień Krwawej Furii co sekundę
+        // Sprawdzanie Pierscienia co sekunde
         Bukkit.getScheduler().runTaskTimer(this, () -> {
             for (Player p : Bukkit.getOnlinePlayers()) {
                 ItemStack item = p.getInventory().getItemInMainHand();
@@ -47,7 +47,7 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
             }
         }, 20L, 20L);
 
-        getLogger().info("Plugin BossyGildii (500HP + Sila 1) zostal wlaczony!");
+        getLogger().info("Plugin BossyGildii (Kataklizm 5% pvp) wlaczony!");
     }
 
     @Override
@@ -85,13 +85,11 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
         boss.setCustomNameVisible(true);
         boss.setMetadata("boss_type", new FixedMetadataValue(this, type));
         
-        // --- STATYSTYKI ZGODNE Z PROSBA ---
         if (boss.getAttribute(Attribute.GENERIC_MAX_HEALTH) != null) {
             boss.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(500.0);
             boss.setHealth(500.0);
         }
         
-        // Dodanie efektu Sila I na zawsze
         boss.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, 999999, 0));
         boss.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE, 999999, 0));
     }
@@ -103,10 +101,10 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
         
         ItemStack artifact = null;
         switch (type) {
-            case "kataklizm": artifact = createArtifact(Material.NETHERITE_SWORD, "§4§lOstrze Kataklizmu", "kataklizm", "§7„Ostrze, ktore wedlug legend rozcinalo cale armie.”"); break;
-            case "burza": artifact = createArtifact(Material.BLAZE_ROD, "§b§lBerlo Burzy", "burza", "§7„Bron, ktora wedlug legend wladal sam wladca burz.”"); break;
-            case "niszczyciel": artifact = createArtifact(Material.BOW, "§6§lLuk Niszczyciela", "niszczyciel", "§7„Luk, ktorym wladal Niszczyciel Swiatow”"); break;
-            case "wampir": artifact = createArtifact(Material.NETHERITE_SCRAP, "§c§lPierscien Krwawej Furii", "wampir", "§7„Pierscien, ktory mial na palcu Wladca Wampirow”"); break;
+            case "kataklizm": artifact = createArtifact(Material.NETHERITE_SWORD, "§4§lOstrze Kataklizmu", "kataklizm", "§c+5% obrażeń PvP"); break;
+            case "burza": artifact = createArtifact(Material.BLAZE_ROD, "§b§lBerlo Burzy", "burza", "§7Wlada piorunami."); break;
+            case "niszczyciel": artifact = createArtifact(Material.BOW, "§6§lLuk Niszczyciela", "niszczyciel", "§7Luk Niszczyciela Swiatow."); break;
+            case "wampir": artifact = createArtifact(Material.NETHERITE_SCRAP, "§c§lPierscien Krwawej Furii", "wampir", "§7Pierscien Wladcy Wampirow."); break;
             case "otchlan": artifact = createRelic(); break;
         }
         if (artifact != null) e.getDrops().add(artifact);
@@ -121,8 +119,11 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
 
         if (id == null) return;
 
+        // Ostrze Kataklizmu: Zmienione na +5% (mnoznik 1.05)
         if (id.equals("kataklizm")) {
-            if (e.getEntity() instanceof Player) e.setDamage(e.getDamage() * 1.4);
+            if (e.getEntity() instanceof Player) {
+                e.setDamage(e.getDamage() * 1.05);
+            }
             if (Math.random() < 0.02 && e.getEntity() instanceof LivingEntity) {
                 LivingEntity target = (LivingEntity) e.getEntity();
                 target.addPotionEffect(new PotionEffect(PotionEffectType.WITHER, 100, 1));
@@ -152,7 +153,7 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
                     Vector v = ent.getLocation().toVector().subtract(p.getLocation().toVector()).normalize().multiply(1.8);
                     ent.setVelocity(v);
                 });
-                p.sendMessage("§4§lKataklizm: §fFala energii odrzucila przeciwnikow!");
+                p.sendMessage("§4§lKataklizm: §fFala energii!");
             }
         }
 
@@ -160,11 +161,6 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
             if (checkCooldown(p, "burza_active", 120)) {
                 Location loc = p.getTargetBlock(null, 30).getLocation();
                 loc.getWorld().strikeLightning(loc);
-                loc.getWorld().getNearbyEntities(loc, 4, 4, 4).forEach(ent -> {
-                    if (ent instanceof LivingEntity) {
-                        ((LivingEntity) ent).addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 80, 1));
-                    }
-                });
                 p.sendMessage("§b§lBurza: §fPrzywolano piorun!");
             }
         }
@@ -202,7 +198,6 @@ public class GuildBosses extends JavaPlugin implements Listener, CommandExecutor
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.setDisplayName("§1§lRelikt Wladcy Otchlani");
-            meta.setLore(Collections.singletonList("§7„Posiadal go najwiekszy Wladca Krainy”"));
             meta.getPersistentDataContainer().set(itemKey, PersistentDataType.STRING, "otchlan");
             UUID attrUuid = UUID.nameUUIDFromBytes("relic_hp_key".getBytes());
             AttributeModifier modifier = new AttributeModifier(attrUuid, "relic_hp", 4.0, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HEAD);
